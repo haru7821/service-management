@@ -1,16 +1,1819 @@
-{
-  "hospitalId": "sample-hospital",
-  "hospitalName": "Sample Hospital",
-  "equipment": [
-    {
-      "id": "eq-001",
-      "productName": "U9000",
-      "serialNumber": "SN-2024-001"
-    },
-    {
-      "id": "eq-002",
-      "productName": "WRO System",
-      "serialNumber": "SN-2024-002"
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#105742">
+<title>Vantive — Technical Service</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  /* ════════════════════════════════════════
+     MOBILE FIRST — iPhone 14 Pro (390px)
+     ════════════════════════════════════════ */
+  :root {
+    --purple:#72256b; --forest:#105742; --teal:#356962;
+    --mint:#f0f7f3; --white:#ffffff; --border:#dce9e4;
+    --text:#105742; --text-dim:#356962; --text-muted:#7aab9a;
+    --danger:#c0392b; --success:#1e8f5e; --warn:#b07a1a;
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  /* ── 전체 레이아웃 (세로 flex) ── */
+  html {
+    height: 100%; height: 100dvh;
+    overflow: hidden;
+  }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--white);
+    color: var(--text);
+    height: 100%; height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* 가로 넘침 완전 차단 */
+    max-width: 100vw;
+  }
+  /* 모든 요소 가로 넘침 방지 */
+  * { max-width: 100%; }
+  img { display: block; }
+
+  /* ── 고정 헤더 ── */
+  .fixed-header {
+    flex-shrink: 0;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--white);
+  }
+
+  /* ── 스크롤 영역 ── */
+  .scroll-body {
+    flex: 1 1 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    width: 100%;
+    /* 상하 스크롤만 허용 */
+    touch-action: pan-y;
+  }
+
+  /* ── wrapper ── */
+  .wrapper {
+    width: 100%;
+    padding: 10px 14px;
+    padding-bottom: max(72px, calc(58px + env(safe-area-inset-bottom)));
+  }
+
+  /* ════ NAV ════ */
+  .top-nav {
+    width: 100%;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 50;
+    box-shadow: 0 1px 6px rgba(16,87,66,0.06);
+  }
+  /* 1줄: 로고 + 홈 버튼 */
+  .nav-row1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    padding-left:  max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    border-bottom: 1px solid var(--border);
+  }
+  /* 2줄: 병원명 */
+  .nav-row2 {
+    display: flex;
+    align-items: center;
+    padding: 4px 14px;
+    padding-left:  max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+  /* 3줄: 클라우드 + Excel */
+  .nav-row3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 14px;
+    padding-left:  max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    border-top: 1px solid var(--border);
+    gap: 8px;
+  }
+  .nav-logo { text-decoration:none; display:flex; align-items:center; flex-shrink:0; }
+  .nav-logo-img { height: 22px; width: auto; object-fit: contain; }
+  .back-btn {
+    display: flex; align-items: center; gap: 4px;
+    color: var(--text-dim); text-decoration: none;
+    font-size: 12px; font-weight: 500;
+    padding: 4px 9px;
+    border: 1px solid var(--border); border-radius: 6px;
+    transition: all .15s; flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .nav-center {
+    flex: 1;
+    font-size: 13px; font-weight: 600;
+    color: var(--forest);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nav-center span { color: var(--purple); }
+  .nav-right { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+  /* 클라우드 상태 표시 */
+  .sync-indicator {
+    display: inline-flex;
+    align-items: center; gap: 4px;
+    font-size: 11px; color: var(--text-muted);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .sync-dot { width:6px; height:6px; border-radius:50%; background:var(--success); flex-shrink:0; }
+  .sync-dot.syncing { background:var(--warn); animation:pulse .8s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .btn-success {
+    padding: 0 10px; height: 30px;
+    font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--forest); color: var(--white);
+    border: none; border-radius: 6px; cursor: pointer;
+    flex-shrink: 0; white-space: nowrap;
+  }
+
+  /* ── page-header 숨김 (모바일) ── */
+  .page-header { display: none; }
+
+  /* ════ ACCOUNT 필터 바 ════ */
+  .account-filter-bar {
+    width: 100%;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    /* 스크롤 시 위아래 이동 방지 */
+    touch-action: pan-x;
+  }
+  .account-filter-bar::-webkit-scrollbar { display: none; }
+  .account-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 11px;
+    font-size: 12px; font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap; flex-shrink: 0;
+    margin-bottom: -1px; user-select: none;
+    transition: all .15s;
+  }
+  .account-chip.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+  .account-chip-count {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    background: var(--mint); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1px 5px; color: var(--text-muted);
+  }
+  .account-chip.active .account-chip-count {
+    background: rgba(114,37,107,0.08); border-color: rgba(114,37,107,0.2); color: var(--purple);
+  }
+
+  /* ════ TABS ════ */
+  .tabs-wrap {
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    background: var(--white);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    /* 스크롤 시 위아래 이동 방지 */
+    touch-action: pan-x;
+  }
+  .tabs-wrap::-webkit-scrollbar { display: none; }
+  .tabs {
+    display: flex;
+    min-width: max-content;
+    padding: 0 10px;
+  }
+  .tab {
+    padding: 9px 14px; font-size: 12px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    display: flex; align-items: center; gap: 5px;
+    white-space: nowrap; flex-shrink: 0;
+    transition: all .15s;
+  }
+  .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+  .tab-badge {
+    background: var(--mint); color: var(--text-muted);
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 1px 5px; border-radius: 10px; border: 1px solid var(--border);
+  }
+  .tab.active .tab-badge { background: rgba(114,37,107,0.08); color: var(--purple); border-color: rgba(114,37,107,0.2); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ════ TOOLBAR ════ */
+  .toolbar {
+    display: flex; flex-direction: column;
+    gap: 6px; margin-bottom: 8px; width: 100%;
+  }
+  .search-input {
+    width: 100%; height: 38px;
+    background: var(--mint); border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 0 11px;
+    color: var(--forest); font-family: 'DM Sans', sans-serif;
+    font-size: 16px; /* iOS zoom 방지 */ outline: none;
+    transition: all .15s;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-input:focus { border-color: var(--purple); background: var(--white); }
+
+  /* 서비스기록 툴바 2번째 줄 */
+  .toolbar-records .toolbar-row2 {
+    display: flex; gap: 6px; width: 100%; align-items: center;
+  }
+  .type-filter-select {
+    flex: 1; min-width: 0; height: 38px;
+    font-size: 14px; padding: 0 8px; padding-right: 24px;
+    border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--mint); color: var(--forest);
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23356962' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    cursor: pointer;
+  }
+  .btn-register {
+    flex-shrink: 0; height: 38px;
+    padding: 0 14px; font-size: 13px; font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* 장비/정기점검 툴바 */
+  #panel-equipment .toolbar,
+  #panel-schedule .toolbar {
+    flex-direction: row; flex-wrap: wrap; gap: 6px;
+  }
+  #panel-equipment .toolbar .search-input {
+    flex: 1; min-width: 100px; height: 36px; width: auto; font-size: 14px;
+  }
+
+  /* ════ BUTTONS ════ */
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; border: none; transition: all .15s;
+    white-space: nowrap; flex-shrink: 0;
+    height: 36px; padding: 0 11px;
+  }
+  .btn-primary { background: var(--purple); color: var(--white); }
+  .btn-primary:hover { background: #5a1c54; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-ghost:hover { border-color: var(--purple); color: var(--purple); }
+  .btn-warn { background: transparent; border: 1px solid var(--warn); color: var(--warn); }
+  .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .btn-sm { height: 28px; padding: 0 9px; font-size: 11px; }
+
+  /* ════ 서비스기록 카드 ════ */
+  #recordsCardList { width: 100%; }
+  .rec-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 7px;
+    display: flex; flex-direction: column; gap: 4px; width: 100%;
+  }
+  .rec-card-row1 { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+  .rec-card-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+  .rec-card-row1 .type-badge { font-size: 10px; padding: 2px 7px; flex-shrink: 0; }
+  .rec-card-row1 .btn-danger { margin-left: auto; height: 28px; padding: 0 9px; font-size: 11px; flex-shrink: 0; }
+  .rec-card-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .rec-card-name { font-size: 13px; font-weight: 600; color: var(--forest); }
+  .rec-card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; width: 100%; }
+  .rec-card-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); }
+  .rec-card .sn-badge { font-size: 10px; padding: 1px 5px; }
+
+  /* ════ 장비 테이블 ════ */
+  .table-wrap { overflow-x: hidden; border-radius: 8px; border: 1px solid var(--border); width: 100%; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  thead tr { background: var(--mint); border-bottom: 1px solid var(--border); }
+  th { padding: 8px 8px; text-align: left; font-size: 10px; font-weight: 700; color: var(--text-dim); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 8px 8px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* 장비 테이블 컬럼 너비 */
+  #panel-equipment table th:nth-child(1) { width: 28px; }
+  #panel-equipment table th:nth-child(2) { width: 24px; }
+  #panel-equipment table th:nth-child(3) { width: 25%; }
+  #panel-equipment table th:nth-child(4) { width: auto; }
+  #panel-equipment table th:nth-child(5) { width: 26%; }
+  /* 설치일·마지막서비스 숨김 */
+  #equipTbody tr td:nth-child(6),
+  #equipTbody tr td:nth-child(7),
+  #panel-equipment thead tr th:nth-child(6),
+  #panel-equipment thead tr th:nth-child(7) { display: none; }
+
+  .sn-badge {
+    font-family: 'DM Mono', monospace; font-size: 10px; color: var(--teal);
+    background: rgba(53,105,98,0.08); padding: 2px 5px;
+    border-radius: 4px; border: 1px solid rgba(53,105,98,0.18);
+    display: inline-block; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+  }
+  .type-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; display: inline-block; white-space: nowrap; }
+  .type-u9000        { background: rgba(114,37,107,0.1); color: var(--purple); }
+  .type-disinfection { background: rgba(30,143,94,0.1);  color: var(--success); }
+  .type-wro          { background: rgba(53,105,98,0.1);  color: var(--teal); }
+  .type-maintenance  { background: rgba(176,122,26,0.1); color: var(--warn); }
+  .type-repair       { background: rgba(192,57,43,0.1);  color: var(--danger); }
+  .type-other        { background: var(--mint); color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-danger.btn-sm { height: 28px; padding: 0 8px; font-size: 11px; }
+  #bulkActionBar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; font-size: 12px; display: none; }
+
+  /* ════ 정기점검 카드 ════ */
+  .schedule-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .schedule-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .schedule-task-name { font-size: 13px; font-weight: 600; color: var(--forest); }
+  .schedule-eq { font-size: 11px; color: var(--text-muted); }
+  .schedule-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+  .due-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .due-overdue { background: rgba(192,57,43,0.1); color: var(--danger); }
+  .due-soon    { background: rgba(176,122,26,0.1); color: var(--warn); }
+  .due-ok      { background: rgba(30,143,94,0.1);  color: var(--success); }
+
+  /* ════ 모달 (하단 시트) ════ */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(16,87,66,0.3); backdrop-filter: blur(3px);
+    z-index: 100; align-items: flex-end; justify-content: center;
+    padding: 0;
+    /* 오버레이 터치 상하만 허용 */
+    touch-action: none;
+    overflow: hidden;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 16px 16px 0 0;
+    width: 100%; max-width: 100%;
+    max-height: 92dvh;
+    overflow-x: hidden;   /* 좌우 스크롤 완전 차단 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;  /* 상하 스크롤만 허용 */
+    padding: 18px 14px;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    position: relative;
+    animation: slideUpSheet .28s cubic-bezier(.32,.72,0,1);
+  }
+  .modal::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 4px; background: linear-gradient(90deg,var(--purple),#a0358e);
+    border-radius: 16px 16px 0 0;
+  }
+  .modal::after {
+    content: ''; position: absolute; top: 7px; left: 50%;
+    transform: translateX(-50%); width: 32px; height: 4px;
+    background: var(--border); border-radius: 2px;
+  }
+  .modal-lg { max-height: 95dvh; overflow-x: hidden; }
+  @keyframes slideUpSheet { from{transform:translateY(100%);} to{transform:translateY(0);} }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--forest); margin-bottom: 12px; margin-top: 6px; }
+  .modal-title span { color: var(--purple); }
+  .modal-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 5px 8px; border-radius: 6px; }
+
+  /* ════ 폼 ════ */
+  .form-grid { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; }
+  .form-group { margin-bottom: 8px; }
+  .form-group.full { grid-column: 1; }
+  label { display: block; font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  input[type="text"],input[type="date"],input[type="number"],select,textarea {
+    width: 100%; background: var(--mint); border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 10px 11px;
+    color: var(--forest); font-family: 'DM Sans', sans-serif;
+    font-size: 16px; /* iOS zoom 방지 */ outline: none; transition: all .15s;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-muted); }
+  input:focus, select:focus, textarea:focus { border-color: var(--purple); background: var(--white); }
+  select option { background: var(--white); }
+  textarea { resize: vertical; min-height: 64px; }
+  .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  .btn-row .btn { height: 44px; padding: 0 18px; font-size: 14px; border-radius: 10px; }
+
+  /* ════ 부품 ════ */
+  .parts-list { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; touch-action: pan-y; }
+  .part-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid var(--border); background: var(--white); overflow: hidden; }
+  .part-item:last-child { border-bottom: none; }
+  .add-part-btn { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-size: 12px; color: var(--text-muted); cursor: pointer; background: none; border: none; width: 100%; text-align: left; }
+
+  /* ════ Excel 가져오기 ════ */
+  .upload-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 20px 14px; text-align: center; cursor: pointer; background: var(--mint); margin-bottom: 12px; touch-action: pan-y; overflow: hidden; }
+  .upload-icon { font-size: 26px; margin-bottom: 6px; }
+  .upload-text { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+  .upload-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .info-box { background: var(--mint); border: 1px solid var(--border); border-left: 3px solid var(--purple); border-radius: 0 8px 8px 0; padding: 10px 12px; font-size: 12px; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px; }
+  .info-box code { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--purple); background: rgba(114,37,107,0.06); padding: 1px 4px; border-radius: 3px; }
+
+  /* ════ 기타 ════ */
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
+  @keyframes spin { to{transform:rotate(360deg);} }
+  .empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); }
+  .empty-state p { font-size: 12px; margin-top: 6px; }
+  .section-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ════ FAB ════ */
+  #fabBtn {
+    display: none; position: fixed;
+    bottom: max(20px, calc(14px + env(safe-area-inset-bottom)));
+    right: 16px; width: 50px; height: 50px;
+    border-radius: 50%; background: var(--purple); color: #fff;
+    border: none; font-size: 26px; cursor: pointer;
+    box-shadow: 0 3px 12px rgba(114,37,107,0.4);
+    z-index: 90; align-items: center; justify-content: center;
+  }
+
+  /* ════ 출력 드롭다운 ════ */
+  .export-menu-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .export-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(16,87,66,0.15);
+    overflow: hidden;
+    z-index: 200;
+    min-width: 150px;
+    animation: fadeDown .15s ease;
+  }
+  .export-menu.open { display: block; }
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);} }
+  .export-menu-item {
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--forest);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .1s;
+    white-space: nowrap;
+  }
+  .export-menu-item:hover { background: var(--mint); }
+  .export-menu-item + .export-menu-item { border-top: 1px solid var(--border); }
+
+  /* ════ 프린트 스타일 ════ */
+  @media print {
+    /* 헤더/탭/버튼 숨김 */
+    .fixed-header, .scroll-body > .wrapper > .toolbar,
+    .toolbar, #fabBtn, .toast, .modal-overlay,
+    .btn-danger, .btn-warn, #bulkActionBar { display: none !important; }
+
+    /* 전체 레이아웃 해제 */
+    html, body { height: auto !important; overflow: visible !important; }
+    .scroll-body { overflow: visible !important; height: auto !important; }
+    .wrapper { padding: 0 !important; }
+
+    /* 활성 탭 패널만 표시 */
+    .tab-panel { display: none !important; }
+    .tab-panel.active { display: block !important; }
+
+    /* 카드 프린트 */
+    .rec-card {
+      break-inside: avoid;
+      border: 1px solid #ccc !important;
+      margin-bottom: 8px !important;
+      page-break-inside: avoid;
     }
-  ]
+    #recordsTableWrap { display: block !important; }
+    #recordsCardList  { display: none !important; }
+
+    /* 테이블 프린트 */
+    table { width: 100% !important; font-size: 11px !important; }
+    th, td { padding: 6px 8px !important; }
+
+    /* 프린트 헤더 */
+    .print-header { display: block !important; }
+  }
+  .print-header {
+    display: none;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #333;
+  }
+  .print-header h2 { font-size: 16px; font-weight: 700; color: #000; }
+  .print-header p  { font-size: 12px; color: #666; margin-top: 3px; }
+
+  /* ════ Toast ════ */
+  .toast {
+    position: fixed;
+    left: 12px; right: 12px;
+    bottom: max(14px, calc(8px + env(safe-area-inset-bottom)));
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 13px; font-weight: 500; color: var(--forest);
+    z-index: 999; transform: translateY(60px); opacity: 0; transition: all .3s;
+    box-shadow: 0 4px 16px rgba(16,87,66,0.1);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--success); }
+  .toast.error   { border-color: var(--danger); }
+
+  /* ════ 2줄 기록행 (데스크탑용 유지) ════ */
+  .rec-row-top td { border-bottom: none !important; padding-bottom: 3px !important; }
+  .rec-row-bot td { border-bottom: 1px solid var(--border); padding-top: 2px !important; }
+
+  /* Account 삭제 */
+  #accountDeleteList label { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--mint); border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+
+  /* Excel import column guide */
+  div[style*="repeat(4,1fr)"] { grid-template-columns:repeat(2,1fr) !important; }
+
+  /* ════ 데스크탑 오버라이드 (768px+) ════ */
+  @media(min-width:768px){
+    /* 데스크탑 nav: 1줄로 복원 */
+    .top-nav { flex-direction:row; align-items:center; height:60px; padding:0 32px; box-shadow:0 1px 8px rgba(16,87,66,0.06); }
+    .nav-row1 { border-bottom:none; padding:0; gap:10px; flex-shrink:0; }
+    .nav-row2 { padding:0; flex:1; }
+    .nav-row3 { border-top:none; padding:0; gap:10px; flex-shrink:0; justify-content:flex-end; }
+    .nav-logo-img { height:24px; }
+    .sync-indicator { font-size:12px; }
+    .btn-success { padding:0 14px; height:36px; font-size:13px; }
+    .page-header { display:block; background:var(--mint); border-bottom:1px solid var(--border); padding:20px 32px; }
+    .page-header-title { font-size:22px; font-weight:700; color:var(--forest); }
+    .page-header-title span { color:var(--purple); }
+    .account-filter-bar { padding:0 32px; }
+    .account-chip { padding:10px 14px; font-size:13px; }
+    .tabs { padding:0 32px; min-width:auto; }
+    .tab { padding:12px 20px; font-size:13px; }
+    .wrapper { padding:20px 32px 60px; }
+    .toolbar { flex-direction:row; flex-wrap:wrap; }
+    .toolbar-records .toolbar-row2 { width:auto; flex:0; }
+    .search-input { font-size:13px; min-width:200px; flex:1; }
+    .type-filter-select { font-size:13px; }
+    .btn { font-size:13px; padding:0 14px; height:38px; }
+    .btn-sm { height:30px; padding:0 10px; font-size:12px; }
+    .modal-overlay { align-items:center; padding:20px; }
+    .modal { border-radius:14px; padding:28px; max-width:520px; animation:slideUp .2s ease; }
+    .modal-lg { max-width:760px; }
+    .modal::after { display:none; }
+    @keyframes slideUp { from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;} }
+    .modal-title { font-size:20px; margin-bottom:20px; margin-top:0; }
+    .form-grid { grid-template-columns:1fr 1fr; gap:14px; }
+    .form-group.full { grid-column:1/-1; }
+    label { font-size:11px; }
+    input[type="text"],input[type="date"],input[type="number"],select,textarea { font-size:13px; padding:9px 11px; }
+    textarea { min-height:80px; }
+    .btn-row .btn { height:40px; font-size:13px; }
+    .schedule-grid { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+    table { font-size:13px; }
+    th { padding:11px 14px; font-size:11px; }
+    td { padding:11px 14px; }
+    .sn-badge { font-size:12px; padding:3px 8px; }
+    .type-badge { font-size:11px; padding:3px 9px; }
+    #equipTbody tr td:nth-child(6),
+    #equipTbody tr td:nth-child(7),
+    #panel-equipment thead tr th:nth-child(6),
+    #panel-equipment thead tr th:nth-child(7) { display:table-cell; }
+    #panel-equipment table { table-layout:auto; }
+    .table-wrap { overflow-x:auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 고정 헤더 ── -->
+<div class="fixed-header">
+  <nav class="top-nav">
+    <!-- 1줄: 로고 + 홈 -->
+    <div class="nav-row1">
+      <a class="nav-logo" href="index.html"><img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABTASADASIAAhEBAxEB/8QAHQABAAIDAAMBAAAAAAAAAAAAAAcIBQYJAQIEA//EAEsQAAECBQMBBAUFCQ4HAAAAAAECAwAEBQYRBxIhMQhBUWETFCJxgTJ1kbKzFRY1Njdic4KhFxgjM0JSU3J0lMHCw9IlQ1Zjk6Ox/8QAGgEBAAMBAQEAAAAAAAAAAAAAAAIEBQMBBv/EAC4RAAICAgAFAQgBBQEAAAAAAAABAgMEEQUSEyExQSIyMzRxgbHBoUJRYZHh8P/aAAwDAQACEQMRAD8AuXCEIAQhCAEIQgBCEIAQhCAEIQgBCEIAQhCAEIQgBCEIAQhCAEIQgBCEIAQhCAEIQgBCEIAQhCAEIQgBCEIAjbtBXXeFmWrL1215WQfl2nts+qYbUtTaVYCCACBjcSCT3lPnECfvk9Q/6Gh/3Rf++LdVinSVXpczTKjLomZSZbLbzSxkKSYoVqxZc7Yd6TdDmiVs/wAbKPY4dZUTtV7+CD5gxoYarmuWS7mxw1U2pwnFbRNWknaFq1VvGWpF4t05mRnD6JqYl2VILTp+Tuyo+yTx5Eg9MxZWOakXW7NuogvWzkyNQmN9cpaQ3M7hy630Q7556HzHmIZmOornguw4jhxglZWu3qSrGPuOsSFv0KdrVUeDMnJtF11XfgdwHeScADvJAjIRVXtc6hpqdVRY1KeJlZBwOVBaVcOPY4b46hGcn849xTFWip2z5TPxcd32KK8epjKj2l75dnnnJGQo0tKqWS00tha1IT3Aq3DJ8Tge4R+TfaQ1GccS23LUVa1EJSlMmskk9ABviFonjsmaeKrVfN51RhX3Ppjg9SChgPTA53DxCOv9YjwIjVsqprg5OJvXUY1Nbm4rsWftJ2sv2zTnrhZYYqzkuhU22znYhwjkDPh39ec9YykI8IUlaQpCgoHoQciMVvbPmm9vZ5hCEeHghCEAIQjwlSVZ2qBwcHB6GAPMIQgCD7q7RlEoFzVOhu25UH3JCaclluJeQAsoUUkgeHEbPpBq3TdR6jPyUlSJuRXJtJdUp5aVBQJxjiKj6wflWuv53mvtVRLPYm/Gm4f7E39eNO3GrjTzJdzbvwqYY/Ol30i1EUw1d1kvOrXjUZakVqdo9LlZlbMuzKOlpRCFY3qUnCiVYzjOBnHmbnxW/Vbs61KsXVNVq06jINNTzxeflpxa0+iWokqKVAKynJzju5x3CK+JKuMnzlTh86YTfV+xnuyzqXWrwZqFBuF8zc5INIeZmijCltk7SFkcEg456nJ64icojTQbS1vTikzapubbnavPFPrDrQIbQhOdqEZ5PJJJwM5HHESXHK9wdjcPBXy5Vytbr8CEIRxK4hCEAIQhACEejbzLiilt1tZHUJUCRHvACEIQAhCEAIjHtFafG+rKUuQaQqs03L0odvLif5bWevtAZH5wHviToRKE3CSkidVkq5qcfKOapBBIIII4IMbNpfeE7Y15ydflNykNn0cy0P8AnMqI3o/YCPMCJI7V2npt65vvsprCUUurOYdQhOAzM4yr4LwVe/dGt9n2w2bwulyfq5Q3b9GSJqoLc4QsDJS2T4HaST/NSemRG51YTq534PqOvXZR1H4a/wDIs/q9qGxaul33z00KfdqCG0U0qbUE73UFSVKB5ACQVYOMkY74ow+66+8t99xbrriita1qJUpROSST1Jiz1E1JomrVx1/T+vtNsUepezQnPR4WhaPkknuUcbwOnBT381zu6gVK17jnaDVmfRTcm5sWB0UOqVDxBBBHkY44kFXuLXf9Fbh9aq3CS1Lz9v8Ah+1i2zUbwumRt+loJemnAFLxlLSP5TivIDn9nUxavU++6NotZdMtS3JduYqYl9sqy4rIaRk5edxydyiogcZO7piPXsr6em1rTVcVTly3V6ugFKVjCmJfqlPiCo+0f1BgEGKy6uV5+5dSK7VnnFLSucW2xu/ktIO1Ax3eyB8cx42si3l/piRbWZfyv3Y/yz47rvG6LpmFvV+uTs9uUVBpbpDST+ageyn4ARjqTVqpSJlMzSqlOSDyTkOS7ym1fSkiNp0XsJ/UO8kUcPqlpNlozE4+ke0lsEDCe7cSQBnzPOMRasaFaXimeo/e2Ogy/wCtO+lJ8d279nTyjpbkV0+y0d78unHfTa/0VbuzVu9rkkKYxN1ibln5FC0Lek31s+sgkYUtKSBuGCMjuPTrn30tu26ndS7YZduasuNO1eVbcQuecUlaFOpSpJBVgggkEeceuuenx08vEU1h9yYp80yH5R1zG/bkgpVgAZBHd3ERhtKPyo2n89yf26ImlB17iux0UapU7gu2i0Xa0uOtW9YEj9xKjMU9ybnw069LrKHNgQtW0KHIyQM48PfFVReN3Agi6a3x4z7p/wA0WV7av4hUX50/0lxU2OOFFOrwV+Gwi6E2iQNSNW7uvN0sO1B+QpaU7ESUu6UpUnplwjlwnvzx4ARo0lOTci+l+Smn5Z1JBC2XChQI6ciLnaPaPWnb1qyMxVaNJVWsTLCHZl6bZS6G1KAOxCVZCQnOMgZPU+AivtY6cUO25enXRb8k1T2Zl/1SZlmU7Wt+0qQpKRwnhKgQODwfHKrIq5unFCjMoc+jBaR7aD66Vhmtytu3nOOVCSmlpZYnXMF1hZPG89VpJIGTyPPpG09smr1ak0y2zS6pOyBdemA4ZaYU3vwlGM7SM4yfpiqgJBBBII5BEdBqjbVAvCh0xVy0mWqZbZS4j0yc7VKSNxHvjlkRhTZGejhlwrxroWpdu+0c/Jl9+amHJiZecfedUVuOOKKlLUepJPJMfRS6rVKU4tyl1KckVuDatUs+psqHgSkjMZbU2SlKbqLcdPkWEsSstU5hplpPRCEuKAA8gIkjsn2tb10XFWmbgpUvUW2JRCmkvAkJJXgngxdnYo187XY0rLowq6jXYkvsdVaq1W2a6uqVOdn1NzqAgzL6nCkFHONxOIgG/ruutF9V9tu5q0hCKlMJSlM84EpAcUAAArAAHGIu5a1r2/a8u9L2/SpenNPrC3UsggKUBgExQjUH8fbh+dJn7VUU8WUbLZSSM7BnC6+c0u3Ynfsk1CsXJ991PqtdqswhyTabQtc2tS2d/pAVIJJ2q8x4CIm1AmL+s27J636lc9d9JLr/AINz150JebPKVp9roR9ByOoMSl2IfwrdH6CW+s5G99qPTs3Xan3fpcuV1ikoUvahOVPsdVI8yPlD4gdYdSNeQ4vw9B3RqzJRkuz1+DQOy1qnPJr6rRueqTM21PqBkH5p8rU29/R5Uc4V3D+d/Wi0cc12HXGHkPMrU242oKQpJwUkHIIi51h6yUmf0fmLsrDqRP0loNT7CVAKde6I2j/uEceB3dwzEMzH780V5OXEsNqSsgvP5MP2qtSnrapDVq0Kcdl6vPJDj77DhSuWZB4wRyFLIxx3A+IitNPuW+KhPsSElcVwTE1MOJaZaRPulS1qOAAN3Ukx8N3V+oXPck9Xqo6XJqcdLiuchI6JSPJIwB5CJ87Ienm91V/1VhQSjc1S0qHCjylbvw5SP1vARYUY41W35/ZcUK8LH3Jbf5ZuFz3u3oppxSaJPTr9wXQ8yXAiZmFLwpRJUtajyGwolKR1Vj3kVlvC/bwu+ZWqt1ycmW3DxKoWUMJ54AbT7PxxngZJjxqlckzdl/VetzDilJemVJYSTkIZSdraR7kge85PfGX0SvOg2Lcz1brNBcqryWdsoUKSCwsnlQCh1xxnqOfGJV0quPNrciVOOqYc/Lub7mrTdFuCkstT83SapINEgtvuyzjSSe7CiBEkaWa63Va04xKVuaerdGyEuNzCtzzSfFtZ548DkY446iRKn2lLUqlPfp9RsyempSYQUOsuutqStJ7iIrHMqZVMuql21NslZLaFK3FKc8Anv4749incmrI6JwTyIuN0NHRuiVSQrVIlatS5lEzJTbQdZdT0Uk//AA9xB5ByDH2RA/Yxrb89ZFVor61LTTZtKmSTnah1JO0eA3IUf1jE8Rj219ObifOZFXSscP7CEIRzOIhCEAYi87fkbptifoNRQCxOMqb3YyW1Y9lY80nBHuis+tU3T9NNPZPSW33w9OTQE1WpsJ2KcyQQMA8bto4zwhKRzuzFr4hHtX6fi4bWF109ompUhsl5KU5L0t1VnzRyr3bvLFnFmlNRl4/ZewbUrFGb7b/n0Kjycy/JzbM3KvLZmGHEuNOIOFIUk5BB7iCMxbC16Fa+tzVtXzOpQip0tYZrUslvAmFIGUpV3FO7afNKinII4qtQ6ZO1qsSlJprCn5ybdSyy2O9ROB7h4nuEX60ztGQsezpKgSKUktJ3zLo6vPEDes+8jjwAA7ovZs1BLXk0+J2qtJp+1+vU2WOdV4yL1Mu2sU6Y3ellp55pZV1JSsjPxjorFZu1bpdPOT7t+0GWVMNKQPuoyjJWgpGA8B3pwAFY6Yz0yRVwbFCbT9Sjwu6NdjjL1NT7JV1Uy3r+mpGqvtyzVVlvQtPLwEpdSrckFRPAI3D34i4sc1Iy4ui5hThTRcVX9RCdvq3rrnosccbc4xwPoi3kYnVlzJ6L+Xw/rz509Ep9rm66bcF8SVMpcy1NNUmXU2862QpPplqypII4OAlIPgcjuiOtKPyo2n89yf26Iw03TKhKU6TqMzJvMyk7v9VdWnCXgggKKfEAnGemcjuMZnSj8qNp/Pcn9uiO8YKFXKvQtRrjVRyR9EyxvbV/EKi/On+kuKmxbLtq/iFRfnT/AElxU2OWF8JHDhny6+50ipP4KlP0CPqiIY7aP5Lqb89tfYPxM9J/BUp+gR9URDHbR/JdTfntr7B+MzH+MvqYuH8xH6lRI6O2/wDgCn/2Vr6gjnFHR23/AMAU/wDsrX1BFziHiJo8Y8Q+/wCihusII1WusEEf8XmT/wC1USh2K5xhq+KzJOOJS7MU8KbBVgq2rGQPE4Vn4GNb7UlrTdB1RnakWVeoVfE0w6E+zvIAcST03bgT7lCItlZiYlXg9LPusOp6LbWUqHxEWuVXU6T8ou8iyMZRT8o6TAgjIIPdxHPDUH8fbh+dJn7VUWQ7GFxeuWvVrbfdUp6RmRMtBRJ/g3RyB7lJJ/Xit+oP4+3D86TP2qor4lbrslFlTh9LpunB+micOxD+Fbo/QS31nIs+QCCCAQeCDFYOxD+Fbo/QS31nIs/FTM+MzP4l8xL7fgpZ2l9PVWbea6nIMFNFqy1PMFKfZZdzlbXl1ykeBwPkmIpDjgaU0FqDalBSkZ4JGcEjxGT9JjoJqZaMle9nT1AnAhKnkbpd4pyWXRylY7+vXxBI74oNW6VP0WszVHqUstidlXSy60RyFA93iD1B7wQYv4l3Uhp+Ua/D8nrV8svKM9pRZc5fd6SlClt6GCfSzj6R/EsAjcrnv5AHmRF9qRT5Ok0uVplPZSxKSjSWWW09EoSMAfQIjrs56eixrMD0+yUVuphL04FdWgM7GvgCSfMnwESfFHLv6k9LwjJ4hk9azS8I5yXJTXqNcNRpEwgodkppxhafApUR/hEg9nezbQvi4J+i3NNzjM16FLkghh9LfpcZ9IOUnJA2kAdwV17pQ7T2kU7Vpxy9LXlFTE0UAVCTZRlbmOA6gDkqxgEAc4z1zmsTDr8rMIeZccYeaVuStCilSFDvBHIMaUJ9ev2Xpm1Xasmn2Jaf4ZcD97Xp5/T1z+9o/wBkYFrR7RFy5XLbRc84au2cKlfui2F7v5o9jBVz8kc+UQS7qhqI7JqlF3lWvRKABImlBfH549ru8efjGuUin1Os1ZmRpkrMTs/MLw220kqWpXj/AIk/GOUaLe/NM4Qxb0m52l7NMtN7e09RPpoK55Qny2XvWXgv5G7bjAGPln9kblGpaR0Ct21YkjS7hq71TqKRudW44V+izjDSVHkpSOM+/HGBG2xlWNuT29mDdJym23v/ACIQhEDmIQhACBAIIIBB4IMIQBo1paU2Xa11TFyUinLbnXdwbC3NyGNwwr0YPTIz3nqR0jeYQiUpOT22TnOU3uT2IEAgggEHggwhESBHl06Lac3DMrmpmgIlJlZKluyTimdxPUlKfZJzznEfHbug+m1GmkTJo7lRcRgp9feLqMjxRwlXuIIiT4R161mtczOyybkuXmevqa3ddiWjdSJRFeocvOJk0FEsCpSA0k4yBtI44HHlGMpOkunVJqctU5C15VmblXUusOekcVsWk5CgCojIPIjd4RFWTS0mRV1iXKpPX1MLd1q2/dsg1I3FTGqhLtOelbQtSk7VYIyCkg9CY1gaLaXggi0pXjxedP8AniQYQVk4rSYjdZFajJr7nhCUoQEISEpSMAAYAEYm7LZoV10xNNuGnNT8oh0PJbWVDCwCAoFJBzhRHxjLwiKbT2iCk09oj79xXS//AKSlv/O9/vjfmGm2GUMtJCW20hKUjuAGAI94R7KcpeXslOyc/ebZjbkoNHuOlOUuuU9mek3MFTbo7wcggjkHzERm72dNNlzJdTLVNpBzhlM4dg+kFX7Yl6EewtnD3XolXfZWtQk0a5Zdi2pZra027RpeSW4gIceGVurAOcFaiSeecZx9EYud0l05nZ1+cmrUknZh9xTrqypeVKUck/K7yY3eEOpPe9nnWs3vme/qYC0rLte01zC7do0vTlTISHi1uJWBnGck9Mn6Yz8IRFtt7ZCUnJ7b2I1Ct6bWhWb1krvn6YF1SU2lKgshDik8oUtPRRSeh92cgCNvhCMnHwz2M5Qe4vQhCEeERGlXhpVYd1Pqmatb8v60o5VMS5LLij5lBG745jdYRKMnF7TJQnKD3F6Illuzxpm0/wCkcp8/MJ3Z9G5OrCceHs4OPjmN+tW0LYtVktW9RJKn7k7VLab/AIRY8FLOVK6d5MZyESlbOXaTJzvtmtSk2IQhHM5CEIQAhCEAIQhACEIQAhCEAIQhACEIQAhCEAIQhACEIQAhCEAIQhACEIQAhCEAIQhACEIQAhCEAIQhAH//2Q==" alt="Vantive" class="nav-logo-img"></a>
+      <a href="index.html" class="back-btn">← 홈</a>
+    </div>
+    <!-- 2줄: 병원명 -->
+    <div class="nav-row2">
+      <div class="nav-center" id="navTitle">Technical <span>Service</span></div>
+    </div>
+    <!-- 3줄: 클라우드 + Excel -->
+    <div class="nav-row3">
+      <span id="syncStatus" class="sync-indicator" style="display:none">
+        <span class="sync-dot" id="syncDot"></span><span id="syncText">클라우드 연결됨</span>
+      </span>
+      <div class="export-menu-wrap">
+        <button class="btn btn-success" onclick="toggleExportMenu(event)">📊 출력 ▾</button>
+        <div class="export-menu" id="exportMenu">
+          <div class="export-menu-item" onclick="exportExcel();closeExportMenu()">📥 Excel 저장</div>
+          <div class="export-menu-item" onclick="printReport();closeExportMenu()">🖨 프린트</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <div class="page-header-inner">
+      <div class="page-header-title" id="pageTitle">Technical <span>Service</span></div>
+    </div>
+  </div>
+
+  <!-- Account 필터 바 -->
+  <div class="account-filter-bar" id="accountFilterBar"></div>
+
+  <div class="tabs-wrap">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('records')">서비스 기록 <span class="tab-badge" id="badge-records">0</span></div>
+      <div class="tab" onclick="switchTab('equipment')">장비 목록 <span class="tab-badge" id="badge-equipment">0</span></div>
+      <div class="tab" onclick="switchTab('schedule')">정기 점검 <span class="tab-badge" id="badge-schedule">0</span></div>
+    </div>
+  </div>
+</div><!-- /fixed-header -->
+
+<!-- ── 스크롤 콘텐츠 ── -->
+<div class="scroll-body">
+<div class="wrapper">
+  <!-- 프린트 전용 헤더 -->
+  <div class="print-header" id="printHeader">
+    <h2 id="printTitle">Technical Service</h2>
+    <p id="printSubtitle"></p>
+  </div>
+
+  <!-- RECORDS -->
+  <div class="tab-panel active" id="panel-records">
+    <div class="toolbar toolbar-records">
+      <input type="text" class="search-input" id="searchRecords" placeholder="장비, 시리얼, 유형 검색..." oninput="filterRecords()">
+      <div class="toolbar-row2">
+        <select class="type-filter-select" onchange="filterByType(this.value)">
+          <option value="">전체 유형</option>
+          <option value="U9000">U9000 Filter</option>
+          <option value="Disinfection">Disinfection</option>
+          <option value="WRO">WRO Filter</option>
+          <option value="Maintenance">Maintenance</option>
+        </select>
+        <button class="btn btn-primary btn-register" onclick="openModal('recordModal')">+ 서비스 등록</button>
+      </div>
+    </div>
+    <!-- 데스크탑: 테이블 / 모바일: 카드 -->
+    <div class="table-wrap" id="recordsTableWrap">
+      <table id="recordsTable">
+        <thead>
+          <tr>
+            <th style="width:100px">날짜</th>
+            <th>장비명 / Serial</th>
+            <th style="width:160px">서비스 유형</th>
+            <th>작업 내용 / 부품</th>
+            <th style="width:72px">담당자</th>
+            <th style="width:52px">조치</th>
+          </tr>
+        </thead>
+        <tbody id="recordsTbody">
+          <tr><td colspan="6"><div class="empty-state"><div class="spinner"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- 모바일 카드 목록 -->
+    <div id="recordsCardList" style="display:none"></div>
+  </div>
+
+  <!-- EQUIPMENT -->
+  <div class="tab-panel" id="panel-equipment">
+    <div class="toolbar">
+      <input type="text" class="search-input" id="searchEquipment" placeholder="Account, 장비명, 시리얼 검색..." oninput="filterEquipment()">
+      <button class="btn btn-ghost" onclick="openModal('importModal')">📂 Excel 가져오기</button>
+      <button class="btn btn-warn" onclick="openModal('deleteAccountModal')">🗑 Account 일괄 삭제</button>
+      <button class="btn btn-primary" onclick="openModal('addEquipModal')">+ 장비 추가</button>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr>
+        <th style="width:32px"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this)"></th>
+        <th>#</th><th>Account Name</th><th>Product Family Name</th><th>Serial Number</th><th>Install Date</th><th>마지막 서비스</th><th>조치</th>
+      </tr></thead>
+      <tbody id="equipTbody"><tr><td colspan="8"><div class="empty-state"><div class="spinner"></div></div></td></tr></tbody></table>
+    </div>
+    <div id="bulkActionBar" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(192,57,43,0.06);border:1.5px solid rgba(192,57,43,0.25);border-radius:8px;align-items:center;gap:12px">
+      <span id="bulkSelectedCount" style="font-size:13px;font-weight:600;color:var(--danger)"></span>
+      <button class="btn btn-danger btn-sm" onclick="deleteSelected()">선택 삭제</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearSelection()">선택 해제</button>
+    </div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div class="tab-panel" id="panel-schedule">
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="openModal('scheduleModal')">+ 정기점검 등록</button>
+      <button class="btn btn-ghost" onclick="renderSchedule()">🔄 새로고침</button>
+    </div>
+    <div class="schedule-grid" id="scheduleGrid">
+      <div class="empty-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div><!-- /wrapper -->
+</div><!-- /scroll-body -->
+
+<!-- MODAL: Service Record -->
+<div class="modal-overlay" id="recordModal">
+  <div class="modal modal-lg">
+    <div class="modal-title">서비스 <span>기록 등록</span></div>
+    <button class="modal-close" onclick="closeModal('recordModal')">✕</button>
+    <div class="form-grid">
+      <div class="form-group"><label>서비스 날짜</label><input type="date" id="rec_date"></div>
+      <div class="form-group"><label>담당자</label><input type="text" id="rec_engineer" placeholder="엔지니어 이름"></div>
+      <div class="form-group full"><label>Account 선택</label>
+        <select id="rec_account" onchange="onRecAccountSelect()">
+          <option value="">-- 전체 Account --</option>
+        </select>
+      </div>
+      <div class="form-group"><label>장비 선택</label><select id="rec_equipment" onchange="onEquipSelect()"><option value="">-- 장비 선택 --</option></select></div>
+      <div class="form-group"><label>Serial Number</label><input type="text" id="rec_serial" placeholder="자동 입력" readonly style="opacity:.6"></div>
+      <div class="form-group full"><label>서비스 유형</label>
+        <select id="rec_type">
+          <option value="">-- 선택 --</option>
+          <option>U9000 Filter Replacement</option>
+          <option>Disinfection</option>
+          <option>WRO Filter Replacement</option>
+          <option>Preventive Maintenance</option>
+          <option>Repair</option>
+          <option>Installation</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>작업 내용</label><textarea id="rec_desc" placeholder="수행한 작업 내용을 입력하세요..." rows="3"></textarea></div>
+    </div>
+    <label style="margin-bottom:10px;display:block">사용 부품</label>
+    <div class="parts-list" id="partsList">
+      <div class="part-item">
+        <input type="text" class="part-name" placeholder="부품명" style="flex:2">
+        <input type="number" class="part-qty" placeholder="수량" min="1" style="flex:0 0 80px">
+        <input type="text" class="part-unit" placeholder="단위 (EA/SET)" style="flex:1">
+        <button class="btn btn-danger btn-sm" onclick="removePart(this)">✕</button>
+      </div>
+    </div>
+    <button class="add-part-btn" onclick="addPartRow()">＋ 부품 추가</button>
+    <div class="form-group" style="margin-top:16px"><label>비고</label><textarea id="rec_note" placeholder="추가 메모..." rows="2"></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('recordModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveRecord()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Equipment -->
+<div class="modal-overlay" id="addEquipModal">
+  <div class="modal">
+    <div class="modal-title">장비 <span>추가</span></div>
+    <button class="modal-close" onclick="closeModal('addEquipModal')">✕</button>
+    <div class="form-group"><label>Account Name</label><input type="text" id="eq_account" placeholder="예: 부산대학교병원"></div>
+    <div class="form-group"><label>Product Family Name</label><input type="text" id="eq_name" placeholder="예: U9000, WRO System"></div>
+    <div class="form-group"><label>Serial Number</label><input type="text" id="eq_serial" placeholder="예: SN-2024-001"></div>
+    <div class="form-group"><label>Install Date</label><input type="date" id="eq_installDate"></div>
+    <div class="form-group"><label>비고</label><input type="text" id="eq_note" placeholder="추가 정보"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('addEquipModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveEquipment()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Import Excel -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal modal-lg">
+    <div class="modal-title">Excel <span>장비 등록</span></div>
+    <button class="modal-close" onclick="closeModal('importModal')">✕</button>
+    <div class="info-box">아래 4개 컬럼명을 사용하세요. 첫 번째 행은 헤더로 인식합니다.</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
+      <div style="background:var(--mint);border:1.5px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:4px">COLUMN A</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--purple);font-weight:600">Account Name</div>
+      </div>
+      <div style="background:var(--mint);border:1.5px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:4px">COLUMN B</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--purple);font-weight:600">Product Family Name</div>
+      </div>
+      <div style="background:var(--mint);border:1.5px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:4px">COLUMN C</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--purple);font-weight:600">Serial Number</div>
+      </div>
+      <div style="background:var(--mint);border:1.5px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:4px">COLUMN D</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--purple);font-weight:600">Install Date</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-ghost btn-sm" onclick="downloadSampleXlsx()">⬇ 샘플 Excel 다운로드</button>
+    </div>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('xlsxInput').click()">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text">Excel 파일을 클릭하거나 드래그하세요</div>
+      <div class="upload-hint">.xlsx, .xls, .csv 지원</div>
+    </div>
+    <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleXlsxImport(this)">
+    <div id="importPreview" style="display:none">
+      <div class="section-label" style="margin-top:4px">미리보기 <span id="importCount" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--purple)"></span></div>
+      <div class="table-wrap" style="max-height:260px;overflow-y:auto;overflow-x:hidden;touch-action:pan-y">
+        <table><thead><tr><th>Account Name</th><th>Product Family Name</th><th>Serial Number</th><th>Install Date</th><th>상태</th></tr></thead>
+        <tbody id="previewTbody"></tbody></table>
+      </div>
+      <div id="importWarning" style="display:none;margin-top:10px" class="info-box"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('importModal')">취소</button>
+      <button class="btn btn-primary" id="confirmImportBtn" style="display:none" onclick="confirmImport()">장비 등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Account 일괄 삭제 -->
+<div class="modal-overlay" id="deleteAccountModal">
+  <div class="modal">
+    <div class="modal-title">Account <span>일괄 삭제</span></div>
+    <button class="modal-close" onclick="closeModal('deleteAccountModal')">✕</button>
+    <div class="info-box" style="border-left-color:var(--danger)">삭제할 Account를 선택하면 해당 Account의 장비가 모두 삭제됩니다.</div>
+    <div id="accountDeleteList" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;margin-bottom:8px"></div>
+    <div id="accountDeleteEmpty" style="display:none;text-align:center;padding:24px;color:var(--text-muted);font-size:13px">등록된 Account가 없습니다.</div>
+    <div class="btn-row" style="border-top:1px solid var(--border);padding-top:16px;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal('deleteAccountModal')">취소</button>
+      <button class="btn btn-danger" id="confirmAccountDeleteBtn" onclick="confirmAccountDelete()" style="display:none">선택 Account 삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Schedule -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal">
+    <div class="modal-title">정기점검 <span>등록</span></div>
+    <button class="modal-close" onclick="closeModal('scheduleModal')">✕</button>
+    <div class="form-group"><label>Account 선택</label>
+      <select id="sch_account" onchange="onSchAccountSelect()">
+        <option value="">-- 전체 Account --</option>
+      </select>
+    </div>
+    <div class="form-group"><label>장비 선택</label><select id="sch_equipment" onchange="onSchEquipSelect()"><option value="">-- 장비 선택 --</option></select></div>
+    <div class="form-group"><label>Serial Number</label><input type="text" id="sch_serial" readonly style="opacity:.6"></div>
+    <div class="form-group"><label>점검 항목</label>
+      <select id="sch_task">
+        <option>U9000 Filter Replacement</option>
+        <option>Disinfection</option>
+        <option>WRO Filter Replacement</option>
+        <option>Preventive Maintenance</option>
+      </select>
+    </div>
+    <div class="form-group"><label>예정 날짜</label><input type="date" id="sch_date"></div>
+    <div class="form-group"><label>주기 (일, 0=단발성)</label><input type="number" id="sch_interval" value="90" min="0"></div>
+    <div class="form-group"><label>비고</label><input type="text" id="sch_note" placeholder="추가 메모"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeModal('scheduleModal')">취소</button>
+      <button class="btn btn-primary" onclick="saveSchedule()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 거래처 설정 -->
+<div class="modal-overlay" id="prefModal">
+  <div class="modal">
+    <div class="modal-title">담당 <span>거래처 설정</span></div>
+    <button class="modal-close" onclick="closeModal('prefModal')">✕</button>
+
+    <div class="form-group">
+      <label>내 이름</label>
+      <input type="text" id="prefName" placeholder="홍길동" autocomplete="off">
+    </div>
+
+    <label style="margin-bottom:8px;display:block">담당 거래처 선택</label>
+    <div class="pref-search-wrap" style="position:relative;margin-bottom:10px">
+      <input type="text" id="prefSearch" placeholder="거래처명 검색..." autocomplete="off"
+             style="padding-right:36px">
+      <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none">🔍</span>
+    </div>
+
+    <!-- Account 체크리스트 -->
+    <div id="prefAccountList"
+         style="max-height:220px;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;
+                border:1.5px solid var(--border);border-radius:8px;background:var(--mint)">
+      <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <!-- 선택 현황 -->
+    <div id="prefSelected"
+         style="margin-top:10px;font-size:12px;color:var(--text-dim);min-height:18px"></div>
+
+    <div class="info-box" style="margin-top:12px;margin-bottom:0">
+      거래처를 선택하지 않으면 <strong>전체 데이터</strong>가 표시됩니다.
+    </div>
+
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn btn-ghost" onclick="clearPrefAccounts()">전체 선택 해제</button>
+      <button class="btn btn-primary" onclick="savePref()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB: 모바일 빠른 서비스 등록 -->
+<button id="fabBtn" onclick="openModal('recordModal')"
+  style="display:none;position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--purple);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(114,37,107,0.4);z-index:90;align-items:center;justify-content:center;transition:all .2s">
+  +
+</button>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp }    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get, push, remove, onValue, update }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ── State ──
+const params     = new URLSearchParams(location.search);
+const hospitalId = params.get('id') || 'sample-hospital';
+let db = null;
+let equipmentList = [], serviceRecords = [], scheduleList = [];
+let importBuffer = [], activeFilter = '', activeAccount = '';
+// 개인 설정 (localStorage)
+const PREF_KEY = 'vantive_pref_' + (new URLSearchParams(location.search).get('id')||'default');
+let myPref = JSON.parse(localStorage.getItem(PREF_KEY)||'{}');
+// myPref: { name:'홍길동', accounts:['부산대병원','세브란스'] }
+
+// ── Firebase 설정 (고정값) ──
+const FIREBASE_CONFIG = {
+  apiKey:           'AIzaSyAj11Y8Z5lFRufGVjoZqo7vfIGCnsduH-o',
+  authDomain:       'service-management-7aff4.firebaseapp.com',
+  databaseURL:      'https://service-management-7aff4-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId:        'service-management-7aff4',
+  storageBucket:    'service-management-7aff4.firebasestorage.app',
+  messagingSenderId:'121578077990',
+  appId:            '1:121578077990:web:2b79e88c751f9c9aadcbe7'
+};
+
+function initFirebase(){
+  try {
+    const app = initializeApp(FIREBASE_CONFIG, 'vantive-hospital');
+    db = getDatabase(app);
+    document.getElementById('syncStatus').style.display = 'inline-flex';
+    return true;
+  } catch(e){ showToast('Firebase 연결 오류: '+e.message,'error'); return false; }
 }
+
+// ── Init ──
+async function init(){
+  if(!initFirebase()) return;
+  // 병원명 표시 (Firebase에서)
+  // Firebase에서 병원명
+  try {
+    const snap = await get(ref(db,`hospitals/${hospitalId}`));
+    if(snap.exists()) setTitle(snap.val().name);
+  } catch{}
+
+  setDefaultDate();
+  // 실시간 리스너 등록
+  listenEquipment();
+  listenRecords();
+  listenSchedule();
+}
+
+function setTitle(name){
+  document.getElementById('pageTitle').innerHTML  = `${name} <span>Technical Service</span>`;
+  document.getElementById('navTitle').innerHTML   = `${name} <span>Technical Service</span>`;
+  document.title = `${name} — Vantive`;
+  updateNavUser();
+}
+
+function updateNavUser(){
+  const el = document.getElementById('navUserName');
+  if(!el) return;
+  const name     = myPref.name || '';
+  const accounts = myPref.accounts || [];
+  if(name){
+    el.textContent = accounts.length > 0
+      ? `${name} (${accounts.length}개 거래처)`
+      : `${name} (전체)`;
+  } else {
+    el.textContent = '거래처 미설정';
+    el.style.color = 'var(--warn)';
+  }
+}
+
+// ── 실시간 리스너 ──
+function listenEquipment(){
+  setSyncing(true);
+  onValue(ref(db,`equipment/${hospitalId}`), snap => {
+    const all = snap.exists()
+      ? Object.entries(snap.val()).map(([id,v])=>({...v,_fbKey:id}))
+      : [];
+    const myAccounts = myPref.accounts || [];
+    equipmentList = myAccounts.length === 0
+      ? all
+      : all.filter(e => myAccounts.includes(e.accountName||''));
+    renderAccountBar();
+    renderEquipment();
+    updateBadges();
+    populateEquipSelects();
+    setSyncing(false);
+  });
+}
+
+function listenRecords(){
+  onValue(ref(db,`records/${hospitalId}`), snap => {
+    const all = snap.exists()
+      ? Object.entries(snap.val()).map(([id,v])=>({...v,_fbKey:id}))
+      : [];
+    const myAccounts = myPref.accounts || [];
+    if(myAccounts.length === 0){
+      serviceRecords = all;
+    } else {
+      const mySns = new Set(equipmentList.map(e=>e.serialNumber));
+      serviceRecords = all.filter(r => mySns.has(r.serialNumber));
+    }
+    renderRecords();
+    updateBadges();
+  });
+}
+
+function listenSchedule(){
+  onValue(ref(db,`schedules/${hospitalId}`), snap => {
+    scheduleList = snap.exists()
+      ? Object.entries(snap.val()).map(([id,v])=>({...v,_fbKey:id}))
+      : [];
+    renderSchedule();
+    updateBadges();
+  });
+}
+
+function setSyncing(v){
+  const dot  = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  if(v){ dot.className='sync-dot syncing'; text.textContent='동기화 중...'; }
+  else { dot.className='sync-dot'; text.textContent='클라우드 연결됨'; }
+}
+
+// ── Account 필터 바 ──
+function renderAccountBar(){
+  const bar = document.getElementById('accountFilterBar');
+  if(!bar) return;
+
+  // 고유 Account 목록 수집
+  const map = {};
+  equipmentList.forEach(eq => {
+    const key = eq.accountName || '(없음)';
+    if(!map[key]) map[key] = 0;
+    map[key]++;
+  });
+  const accounts = Object.keys(map).sort();
+
+  // Account 1개 이하면 바 숨김
+  if(accounts.length <= 1){
+    bar.style.display = 'none';
+    activeAccount = '';
+    return;
+  }
+
+  bar.style.display = 'flex';
+  bar.innerHTML = [
+    { name: '전체', count: equipmentList.length },
+    ...accounts.map(a => ({ name: a, count: map[a] }))
+  ].map(a => `
+    <div class="account-chip ${(!activeAccount && a.name==='전체') || activeAccount===a.name ? 'active' : ''}"
+         onclick="selectAccount('${a.name}')">
+      ${a.name}
+      <span class="account-chip-count">${a.count}</span>
+    </div>`
+  ).join('');
+}
+
+window.selectAccount = function(name){
+  activeAccount = (name === '전체') ? '' : name;
+  renderAccountBar();
+  renderEquipment();
+  renderRecords();
+  renderSchedule();
+};
+
+// ── Equipment ──
+function renderEquipment(list){
+  const base = list || equipmentList;
+  const data = activeAccount ? base.filter(e => (e.accountName||'(없음)') === activeAccount) : base;
+  const tbody = document.getElementById('equipTbody');
+  if(!data.length){
+    tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state">등록된 장비가 없습니다.<p>Excel 가져오기 또는 + 장비 추가를 사용하세요.</p></div></td></tr>`;
+    hideBulkBar(); return;
+  }
+  tbody.innerHTML = data.map((eq,i)=>{
+    const lr = serviceRecords.filter(r=>r.serialNumber===eq.serialNumber)
+                             .sort((a,b)=>b.date.localeCompare(a.date))[0];
+    return `<tr>
+      <td style="width:32px;text-align:center"><input type="checkbox" class="eq-check" data-key="${eq._fbKey}" onchange="onCheckChange()"></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted)">${String(i+1).padStart(2,'0')}</td>
+      <td style="font-size:13px;color:var(--text-dim);font-weight:500">${eq.accountName||'—'}</td>
+      <td><strong style="color:var(--forest)">${eq.productName}</strong></td>
+      <td><span class="sn-badge">${eq.serialNumber}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted)">${eq.installDate||'—'}</td>
+      <td style="color:var(--text-muted);font-size:12px">${lr?lr.date:'—'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteEquipment('${eq._fbKey}')">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+
+window.filterEquipment = function(){
+  const q=document.getElementById('searchEquipment').value.toLowerCase();
+  renderEquipment(equipmentList.filter(e=>
+    (e.accountName||'').toLowerCase().includes(q)||
+    e.productName.toLowerCase().includes(q)||
+    e.serialNumber.toLowerCase().includes(q)));
+};
+
+window.saveEquipment = async function(){
+  if(!db) return;
+  const account     = document.getElementById('eq_account').value.trim();
+  const productName = document.getElementById('eq_name').value.trim();
+  const serialNumber= document.getElementById('eq_serial').value.trim();
+  const installDate = document.getElementById('eq_installDate').value;
+  const note        = document.getElementById('eq_note').value.trim();
+  if(!productName||!serialNumber){ showToast('Product Family Name과 Serial Number를 입력하세요.','error'); return; }
+  if(equipmentList.find(e=>e.serialNumber===serialNumber)){ showToast('이미 등록된 시리얼 번호입니다.','error'); return; }
+  setSyncing(true);
+  await push(ref(db,`equipment/${hospitalId}`), {accountName:account,productName,serialNumber,installDate:installDate||'',note,createdAt:new Date().toISOString()});
+  closeModal('addEquipModal');
+  ['eq_account','eq_name','eq_serial','eq_note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('eq_installDate').value='';
+  showToast(`${productName} (${serialNumber}) 등록 완료`,'success');
+};
+
+window.deleteEquipment = async function(key){
+  if(!confirm('이 장비를 삭제하시겠습니까?')) return;
+  setSyncing(true);
+  await remove(ref(db,`equipment/${hospitalId}/${key}`));
+  showToast('삭제 완료');
+};
+
+// ── Checkbox bulk ──
+window.toggleCheckAll = function(cb){
+  document.querySelectorAll('.eq-check').forEach(c=>c.checked=cb.checked);
+  onCheckChange();
+};
+window.onCheckChange = function(){
+  const checked=document.querySelectorAll('.eq-check:checked');
+  const bar=document.getElementById('bulkActionBar');
+  if(checked.length>0){
+    bar.style.display='flex';
+    document.getElementById('bulkSelectedCount').textContent=`${checked.length}개 선택됨`;
+  } else hideBulkBar();
+  const all=document.querySelectorAll('.eq-check');
+  document.getElementById('checkAll').checked=all.length>0&&checked.length===all.length;
+};
+function hideBulkBar(){ document.getElementById('bulkActionBar').style.display='none'; }
+window.clearSelection = function(){
+  document.querySelectorAll('.eq-check').forEach(c=>c.checked=false);
+  document.getElementById('checkAll').checked=false;
+  hideBulkBar();
+};
+window.deleteSelected = async function(){
+  const keys=[...document.querySelectorAll('.eq-check:checked')].map(c=>c.dataset.key);
+  if(!keys.length) return;
+  if(!confirm(`선택한 장비 ${keys.length}개를 삭제하시겠습니까?`)) return;
+  setSyncing(true);
+  await Promise.all(keys.map(k=>remove(ref(db,`equipment/${hospitalId}/${k}`))));
+  showToast(`${keys.length}개 장비 삭제 완료`,'success');
+};
+
+// ── Account 일괄 삭제 ──
+window.buildAccountDeleteList = function(){
+  const map={};
+  equipmentList.forEach(eq=>{
+    const key=eq.accountName||'(Account 없음)';
+    if(!map[key]) map[key]={name:key,count:0,keys:[]};
+    map[key].count++; map[key].keys.push(eq._fbKey);
+  });
+  const accounts=Object.values(map).sort((a,b)=>a.name.localeCompare(b.name));
+  const container=document.getElementById('accountDeleteList');
+  const empty=document.getElementById('accountDeleteEmpty');
+  const btn=document.getElementById('confirmAccountDeleteBtn');
+  if(!accounts.length){ container.style.display='none'; empty.style.display='block'; btn.style.display='none'; return; }
+  container.style.display='flex'; empty.style.display='none'; btn.style.display='none';
+  container.innerHTML=accounts.map(a=>`
+    <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--mint);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s"
+      onmouseover="this.style.borderColor='var(--danger)'" onmouseout="this.style.borderColor='var(--border)'">
+      <input type="checkbox" class="account-del-check" data-keys="${a.keys.join(',')}" onchange="onAccountCheckChange()" style="width:16px;height:16px;accent-color:var(--danger);cursor:pointer">
+      <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--forest)">${a.name}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">장비 ${a.count}개</div></div>
+      <span style="font-family:'DM Mono',monospace;font-size:20px;font-weight:600;color:var(--purple)">${a.count}</span>
+    </label>`).join('');
+};
+window.onAccountCheckChange = function(){
+  const checked=document.querySelectorAll('.account-del-check:checked');
+  const btn=document.getElementById('confirmAccountDeleteBtn');
+  if(checked.length>0){
+    const totalKeys=[...checked].flatMap(c=>c.dataset.keys.split(',').filter(Boolean));
+    btn.style.display='inline-flex';
+    btn.textContent=`선택 Account ${checked.length}개 삭제 (장비 ${totalKeys.length}개)`;
+  } else btn.style.display='none';
+};
+window.confirmAccountDelete = async function(){
+  const checked=[...document.querySelectorAll('.account-del-check:checked')];
+  if(!checked.length) return;
+  const keys=checked.flatMap(c=>c.dataset.keys.split(',').filter(Boolean));
+  const names=checked.map(c=>c.closest('label').querySelector('div div').textContent);
+  if(!confirm(`"${names.join(', ')}" Account의 장비 ${keys.length}개를 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  setSyncing(true);
+  await Promise.all(keys.map(k=>remove(ref(db,`equipment/${hospitalId}/${k}`))));
+  closeModal('deleteAccountModal');
+  showToast(`${keys.length}개 장비 삭제 완료`,'success');
+};
+
+// ── Excel Import ──
+const uz=document.getElementById('uploadZone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag-over');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag-over'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag-over');if(e.dataTransfer.files[0])parseXlsx(e.dataTransfer.files[0]);});
+window.handleXlsxImport = f=>{if(f.files[0])parseXlsx(f.files[0]);};
+function parseXlsx(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
+    if(!rows.length){showToast('파일이 비어있습니다.','error');return;}
+    const hdr=rows[0].map(h=>String(h||'').trim().toLowerCase());
+    const cA=hdr.findIndex(h=>h.includes('account'));
+    const cP=hdr.findIndex(h=>h.includes('product')||h.includes('family'));
+    const cS=hdr.findIndex(h=>h.includes('serial')||h.includes('sn'));
+    const cD=hdr.findIndex(h=>h.includes('install')||h.includes('date'));
+    if(cP===-1||cS===-1){showToast('Product Family Name / Serial Number 컬럼을 찾을 수 없습니다.','error');return;}
+    importBuffer=[];const prev=document.getElementById('previewTbody');prev.innerHTML='';
+    let dup=0,empty=0;
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i];
+      const account=cA>=0?String(r[cA]||'').trim():'';
+      const product=String(r[cP]||'').trim();
+      const serial=String(r[cS]||'').trim();
+      const idate=cD>=0?formatDate(String(r[cD]||'').trim()):'';
+      if(!product&&!serial){empty++;continue;}
+      const isDup=equipmentList.some(e=>e.serialNumber===serial);
+      if(isDup)dup++;
+      importBuffer.push({accountName:account,productName:product,serialNumber:serial,installDate:idate,isDup});
+      const tr=document.createElement('tr');tr.style.opacity=isDup?.5:1;
+      tr.innerHTML=`<td style="font-size:13px;color:var(--text-dim)">${account||'—'}</td><td style="font-weight:500;color:var(--forest)">${product}</td><td><span class="sn-badge">${serial}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted)">${idate||'—'}</td><td>${isDup?'<span style="font-size:11px;font-weight:600;color:var(--warn);background:rgba(176,122,26,0.1);padding:2px 8px;border-radius:10px">중복</span>':'<span style="font-size:11px;font-weight:600;color:var(--success);background:rgba(30,143,94,0.1);padding:2px 8px;border-radius:10px">신규</span>'}</td>`;
+      prev.appendChild(tr);
+    }
+    const nc=importBuffer.filter(x=>!x.isDup).length;
+    document.getElementById('importCount').textContent=`총 ${importBuffer.length}개 (신규 ${nc}개${dup?` · 중복 ${dup}개`:''}${empty?` · 빈행 ${empty}개`:''})`
+    document.getElementById('importPreview').style.display='block';
+    document.getElementById('confirmImportBtn').style.display=nc>0?'inline-flex':'none';
+    document.getElementById('confirmImportBtn').textContent=`장비 ${nc}개 등록`;
+    const w=document.getElementById('importWarning');
+    if(dup>0){w.style.display='block';w.textContent=`⚠ 중복된 시리얼 번호 ${dup}개는 건너뜁니다.`;}else w.style.display='none';
+    showToast(`${importBuffer.length}개 감지 · 신규 ${nc}개 등록 가능`,'success');
+  };reader.readAsArrayBuffer(file);
+}
+function formatDate(raw){
+  if(!raw)return'';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return raw;
+  const m=raw.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  if(m){let[,a,b,y]=m;if(y.length===2)y='20'+y;return`${y}-${a.padStart(2,'0')}-${b.padStart(2,'0')}`;}
+  const d=new Date(raw);return isNaN(d)?raw:d.toISOString().split('T')[0];
+}
+window.confirmImport = async function(){
+  if(!db) return;
+  const newItems=importBuffer.filter(x=>!x.isDup&&x.serialNumber);
+  if(!newItems.length) return;
+  setSyncing(true);
+  const writes=newItems.map(item=>push(ref(db,`equipment/${hospitalId}`),{
+    accountName:item.accountName||'',productName:item.productName,
+    serialNumber:item.serialNumber,installDate:item.installDate||'',
+    note:'Excel 가져오기',createdAt:new Date().toISOString()
+  }));
+  await Promise.all(writes);
+  closeModal('importModal');
+  document.getElementById('importPreview').style.display='none';
+  document.getElementById('confirmImportBtn').style.display='none';
+  document.getElementById('xlsxInput').value='';
+  importBuffer=[];
+  showToast(`${newItems.length}개 장비 등록 완료`,'success');
+};
+window.downloadSampleXlsx = function(){
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Account Name','Product Family Name','Serial Number','Install Date'],
+    ['Sample Hospital','U9000','SN-2024-001','2024-01-15'],
+    ['Sample Hospital','WRO System','SN-2024-002','2024-03-20'],
+  ]);
+  ws['!cols']=[{wch:22},{wch:24},{wch:18},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws,'Equipment');
+  XLSX.writeFile(wb,'Vantive_Equipment_Template.xlsx');
+  showToast('샘플 파일 다운로드 완료','success');
+};
+
+// ── Records ──
+function renderRecords(list){
+  let base = list || serviceRecords;
+  if(activeFilter) base = base.filter(r=>r.serviceType&&r.serviceType.includes(activeFilter));
+  if(activeAccount){
+    // Account에 속한 serialNumber 목록
+    const sns = new Set(equipmentList.filter(e=>(e.accountName||'(없음)')===activeAccount).map(e=>e.serialNumber));
+    base = base.filter(r => sns.has(r.serialNumber));
+  }
+  const data = base;
+  const tbody    = document.getElementById('recordsTbody');
+  const cardList = document.getElementById('recordsCardList');
+  const isMobile = window.innerWidth <= 680;
+
+  // 모바일/데스크탑 전환
+  document.getElementById('recordsTableWrap').style.display = isMobile ? 'none' : '';
+  cardList.style.display = isMobile ? 'block' : 'none';
+
+  if(!data.length){
+    const empty = `<div class="empty-state">서비스 기록이 없습니다.<p>+ 서비스 등록으로 추가하세요.</p></div>`;
+    tbody.innerHTML    = `<tr><td colspan="6">${empty}</td></tr>`;
+    cardList.innerHTML = empty;
+    return;
+  }
+
+  const sorted = [...data].sort((a,b)=>b.date.localeCompare(a.date));
+  const tc = r => getTypeClass(r.serviceType);
+  const ps = r => (r.parts||[]).map(p=>`${p.name} ×${p.qty}${p.unit||''}`).join(' · ');
+
+  // ── 데스크탑 테이블 (2줄 행) ──
+  tbody.innerHTML = sorted.map(r=>`
+    <tr class="rec-row-top">
+      <td rowspan="2" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);white-space:nowrap;vertical-align:middle;border-right:1px solid var(--border)">${r.date}</td>
+      <td style="padding-bottom:3px">
+        <strong style="color:var(--forest);font-size:13px">${r.equipmentName||'—'}</strong>
+        <span class="sn-badge" style="margin-left:6px;font-size:11px">${r.serialNumber||''}</span>
+      </td>
+      <td rowspan="2" style="vertical-align:middle;border-right:1px solid var(--border)">
+        <span class="type-badge ${tc(r)}">${r.serviceType||'—'}</span>
+      </td>
+      <td style="padding-bottom:3px;font-size:12px;color:var(--text-dim)">${r.description||'—'}</td>
+      <td rowspan="2" style="font-size:12px;color:var(--text-dim);vertical-align:middle;text-align:center;border-left:1px solid var(--border)">${r.engineer||'—'}</td>
+      <td rowspan="2" style="vertical-align:middle;text-align:center;border-left:1px solid var(--border)">
+        <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r._fbKey}')">삭제</button>
+      </td>
+    </tr>
+    <tr class="rec-row-bot">
+      <td style="padding-top:2px;font-size:11px;color:var(--text-muted)">${r.serialNumber||''}</td>
+      <td style="padding-top:2px;font-size:11px;color:var(--text-muted)">${ps(r)?'🔩 '+ps(r):''}</td>
+    </tr>`).join('');
+
+  // ── 모바일 카드 ──
+  cardList.innerHTML = sorted.map(r=>`
+    <div class="rec-card">
+      <div class="rec-card-row1">
+        <span class="rec-card-date">${r.date}</span>
+        <span class="type-badge ${tc(r)}">${r.serviceType||'—'}</span>
+        <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="deleteRecord('${r._fbKey}')">삭제</button>
+      </div>
+      <div class="rec-card-row2">
+        <strong class="rec-card-name">${r.equipmentName||'—'}</strong>
+        <span class="sn-badge">${r.serialNumber||''}</span>
+      </div>
+      ${r.description?`<div class="rec-card-desc">${r.description}</div>`:''}
+      ${ps(r)||r.engineer?`
+      <div class="rec-card-meta">
+        ${ps(r)?`<span>🔩 ${ps(r)}</span>`:''}
+        ${r.engineer?`<span>👤 ${r.engineer}</span>`:''}
+      </div>`:''}
+    </div>`).join('');
+}
+function getTypeClass(t){t=(t||'').toLowerCase();if(t.includes('u9000'))return'type-u9000';if(t.includes('disinfect'))return'type-disinfection';if(t.includes('wro'))return'type-wro';if(t.includes('maintenance'))return'type-maintenance';if(t.includes('repair'))return'type-repair';return'type-other';}
+window.filterRecords = function(){
+  const q=document.getElementById('searchRecords').value.toLowerCase();
+  renderRecords(serviceRecords.filter(r=>(r.equipmentName||'').toLowerCase().includes(q)||(r.serialNumber||'').toLowerCase().includes(q)||(r.serviceType||'').toLowerCase().includes(q)||(r.description||'').toLowerCase().includes(q)));
+};
+window.filterByType = function(t){ activeFilter=t; renderRecords(); };
+function populateEquipSelects(){
+  // Account 목록 (공통 함수)
+  const accounts = [...new Set(equipmentList.map(e=>e.accountName||'').filter(Boolean))].sort();
+
+  // rec_account 채우기
+  const recAccSel = document.getElementById('rec_account');
+  if(recAccSel){
+    const cur = recAccSel.value;
+    recAccSel.innerHTML = '<option value="">-- 전체 Account --</option>';
+    accounts.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;recAccSel.appendChild(o);});
+    recAccSel.value = cur;
+  }
+
+  // sch_account 채우기
+  const schAccSel = document.getElementById('sch_account');
+  if(schAccSel){
+    const cur = schAccSel.value;
+    schAccSel.innerHTML = '<option value="">-- 전체 Account --</option>';
+    accounts.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;schAccSel.appendChild(o);});
+    schAccSel.value = cur;
+  }
+
+  // rec_equipment 채우기 (rec_account 필터 적용)
+  const recAcc = recAccSel ? recAccSel.value : '';
+  const recEqSel = document.getElementById('rec_equipment');
+  if(recEqSel){
+    const cur = recEqSel.value;
+    recEqSel.innerHTML = '<option value="">-- 장비 선택 --</option>';
+    const list = recAcc ? equipmentList.filter(e=>(e.accountName||'')===recAcc) : equipmentList;
+    list.forEach(eq=>{const o=document.createElement('option');o.value=eq._fbKey;o.textContent=`${eq.productName} (${eq.serialNumber})`;recEqSel.appendChild(o);});
+    recEqSel.value = cur;
+  }
+
+  // sch_equipment 채우기 (sch_account 필터 적용)
+  const schAcc = schAccSel ? schAccSel.value : '';
+  const schEqSel = document.getElementById('sch_equipment');
+  if(schEqSel){
+    const cur = schEqSel.value;
+    schEqSel.innerHTML = '<option value="">-- 장비 선택 --</option>';
+    const list = schAcc ? equipmentList.filter(e=>(e.accountName||'')===schAcc) : equipmentList;
+    list.forEach(eq=>{const o=document.createElement('option');o.value=eq._fbKey;o.textContent=`${eq.productName} (${eq.serialNumber})`;schEqSel.appendChild(o);});
+    schEqSel.value = cur;
+  }
+}
+window.onRecAccountSelect = function(){
+  // Account 변경 시 장비 목록 필터링 & 장비 선택 초기화
+  document.getElementById('rec_equipment').value = '';
+  document.getElementById('rec_serial').value = '';
+  const filterAcc = document.getElementById('rec_account').value;
+  const sel = document.getElementById('rec_equipment');
+  sel.innerHTML = '<option value="">-- 장비 선택 --</option>';
+  const list = filterAcc
+    ? equipmentList.filter(e=>(e.accountName||'')===filterAcc)
+    : equipmentList;
+  list.forEach(eq=>{
+    const o=document.createElement('option');
+    o.value=eq._fbKey;
+    o.textContent=`${eq.productName} (${eq.serialNumber})`;
+    sel.appendChild(o);
+  });
+};
+
+window.onEquipSelect = function(){
+  const eq=equipmentList.find(e=>e._fbKey===document.getElementById('rec_equipment').value);
+  document.getElementById('rec_serial').value=eq?eq.serialNumber:'';
+};
+window.onSchAccountSelect = function(){
+  document.getElementById('sch_equipment').value = '';
+  document.getElementById('sch_serial').value = '';
+  const filterAcc = document.getElementById('sch_account').value;
+  const sel = document.getElementById('sch_equipment');
+  sel.innerHTML = '<option value="">-- 장비 선택 --</option>';
+  const list = filterAcc
+    ? equipmentList.filter(e=>(e.accountName||'')===filterAcc)
+    : equipmentList;
+  list.forEach(eq=>{
+    const o=document.createElement('option');
+    o.value=eq._fbKey;
+    o.textContent=`${eq.productName} (${eq.serialNumber})`;
+    sel.appendChild(o);
+  });
+};
+
+window.onSchEquipSelect = function(){
+  const eq=equipmentList.find(e=>e._fbKey===document.getElementById('sch_equipment').value);
+  document.getElementById('sch_serial').value=eq?eq.serialNumber:'';
+};
+window.addPartRow = function(){
+  const list=document.getElementById('partsList');const row=document.createElement('div');row.className='part-item';
+  row.innerHTML=`<input type="text" class="part-name" placeholder="부품명" style="flex:2"><input type="number" class="part-qty" placeholder="수량" min="1" style="flex:0 0 80px"><input type="text" class="part-unit" placeholder="단위" style="flex:1"><button class="btn btn-danger btn-sm" onclick="removePart(this)">✕</button>`;
+  list.appendChild(row);
+};
+window.removePart = function(btn){
+  const rows=document.querySelectorAll('#partsList .part-item');
+  if(rows.length>1)btn.closest('.part-item').remove();
+  else btn.closest('.part-item').querySelectorAll('input').forEach(i=>i.value='');
+};
+window.saveRecord = async function(){
+  if(!db) return;
+  const eqKey=document.getElementById('rec_equipment').value;
+  const eq=equipmentList.find(e=>e._fbKey===eqKey);
+  const date=document.getElementById('rec_date').value;
+  const type=document.getElementById('rec_type').value;
+  if(!date||!type){showToast('날짜와 서비스 유형을 선택하세요.','error');return;}
+  const parts=[];
+  document.querySelectorAll('#partsList .part-item').forEach(row=>{
+    const name=row.querySelector('.part-name').value.trim();
+    const qty=row.querySelector('.part-qty').value;
+    const unit=row.querySelector('.part-unit').value.trim();
+    if(name) parts.push({name,qty:qty||1,unit});
+  });
+  setSyncing(true);
+  await push(ref(db,`records/${hospitalId}`),{
+    date,
+    equipmentName: eq?eq.productName:'',
+    serialNumber:  eq?eq.serialNumber:document.getElementById('rec_serial').value,
+    serviceType:   type,
+    description:   document.getElementById('rec_desc').value.trim(),
+    engineer:      document.getElementById('rec_engineer').value.trim(),
+    parts,
+    note:          document.getElementById('rec_note').value.trim(),
+    createdAt:     new Date().toISOString()
+  });
+  closeModal('recordModal');
+  ['rec_account','rec_equipment','rec_serial','rec_type','rec_desc','rec_engineer','rec_note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('partsList').innerHTML=`<div class="part-item"><input type="text" class="part-name" placeholder="부품명" style="flex:2"><input type="number" class="part-qty" placeholder="수량" min="1" style="flex:0 0 80px"><input type="text" class="part-unit" placeholder="단위 (EA/SET)" style="flex:1"><button class="btn btn-danger btn-sm" onclick="removePart(this)">✕</button></div>`;
+  setDefaultDate();
+  showToast('서비스 기록 저장 완료','success');
+};
+window.deleteRecord = async function(key){
+  if(!confirm('이 서비스 기록을 삭제하시겠습니까?')) return;
+  setSyncing(true);
+  await remove(ref(db,`records/${hospitalId}/${key}`));
+  showToast('삭제 완료','success');
+};
+
+// ── Schedule ──
+window.saveSchedule = async function(){
+  if(!db) return;
+  const eqKey=document.getElementById('sch_equipment').value;
+  const eq=equipmentList.find(e=>e._fbKey===eqKey);
+  const task=document.getElementById('sch_task').value;
+  const date=document.getElementById('sch_date').value;
+  const interval=parseInt(document.getElementById('sch_interval').value)||0;
+  const note=document.getElementById('sch_note').value.trim();
+  if(!date||!task){showToast('장비와 날짜를 선택하세요.','error');return;}
+  setSyncing(true);
+  await push(ref(db,`schedules/${hospitalId}`),{
+    equipmentKey:eqKey,equipmentName:eq?eq.productName:'장비 미선택',
+    serialNumber:eq?eq.serialNumber:'',task,date,interval,note
+  });
+  document.getElementById('sch_account').value='';
+  document.getElementById('sch_equipment').value='';
+  document.getElementById('sch_serial').value='';
+  closeModal('scheduleModal');
+  showToast('정기점검 등록 완료','success');
+};
+function renderSchedule(){
+  const grid=document.getElementById('scheduleGrid');
+  const today=new Date();today.setHours(0,0,0,0);
+  let list = scheduleList;
+  if(activeAccount){
+    const sns = new Set(equipmentList.filter(e=>(e.accountName||'(없음)')===activeAccount).map(e=>e.serialNumber));
+    list = list.filter(s => sns.has(s.serialNumber));
+  }
+  if(!list.length){grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1">등록된 정기점검 일정이 없습니다.</div>`;return;}
+  grid.innerHTML=[...list].sort((a,b)=>a.date.localeCompare(b.date)).map(s=>{
+    const diff=Math.ceil((new Date(s.date)-today)/86400000);
+    let dc,dl;if(diff<0){dc='due-overdue';dl=`${Math.abs(diff)}일 초과`;}else if(diff<=14){dc='due-soon';dl=`${diff}일 후`;}else{dc='due-ok';dl=`${diff}일 후`;}
+    return `<div class="schedule-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div class="schedule-task-name">${s.task}</div><div class="schedule-eq">${s.equipmentName}${s.serialNumber?` · ${s.serialNumber}`:''}</div></div>
+        <span class="due-badge ${dc}">${dl}</span>
+      </div>
+      <div class="schedule-date">📅 ${s.date}${s.interval?` · 주기: ${s.interval}일`:''}</div>
+      ${s.note?`<div style="font-size:12px;color:var(--text-muted)">${s.note}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn btn-ghost btn-sm" onclick="markScheduleDone('${s._fbKey}')">✓ 완료처리</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSchedule('${s._fbKey}')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.markScheduleDone = async function(key){
+  const s=scheduleList.find(s=>s._fbKey===key);if(!s)return;
+  setSyncing(true);
+  await push(ref(db,`records/${hospitalId}`),{
+    date:new Date().toISOString().split('T')[0],equipmentName:s.equipmentName,
+    serialNumber:s.serialNumber,serviceType:s.task,description:'정기점검 완료',
+    engineer:'',parts:[],note:s.note||'',createdAt:new Date().toISOString()
+  });
+  if(s.interval>0){
+    const next=new Date(s.date);next.setDate(next.getDate()+s.interval);
+    await update(ref(db,`schedules/${hospitalId}/${key}`),{date:next.toISOString().split('T')[0]});
+  } else {
+    await remove(ref(db,`schedules/${hospitalId}/${key}`));
+  }
+  showToast('완료 처리 및 서비스 기록 자동 생성됨','success');
+};
+window.deleteSchedule = async function(key){
+  if(!confirm('삭제하시겠습니까?')) return;
+  await remove(ref(db,`schedules/${hospitalId}/${key}`));
+};
+
+// ── Excel Export ──
+// ── 출력 메뉴 ──
+window.toggleExportMenu = function(e){
+  e.stopPropagation();
+  const menu = document.getElementById('exportMenu');
+  menu.classList.toggle('open');
+};
+window.closeExportMenu = function(){
+  document.getElementById('exportMenu').classList.remove('open');
+};
+// 외부 클릭 시 닫기
+document.addEventListener('click', ()=>closeExportMenu());
+
+window.printReport = function(){
+  // 프린트 헤더 내용 채우기
+  const titleEl = document.getElementById('printTitle');
+  const subEl   = document.getElementById('printSubtitle');
+  const hospName = document.getElementById('navTitle')?.textContent || 'Technical Service';
+  const today   = new Date().toLocaleDateString('ko-KR');
+  if(titleEl) titleEl.textContent = hospName;
+  if(subEl)   subEl.textContent   = `출력일: ${today}  |  서비스 기록 ${serviceRecords.length}건  |  장비 ${equipmentList.length}대`;
+
+  // 모바일에서 강제로 테이블 뷰로 전환 후 프린트
+  const tableWrap = document.getElementById('recordsTableWrap');
+  const cardList  = document.getElementById('recordsCardList');
+  const prevTable = tableWrap ? tableWrap.style.display : '';
+  const prevCard  = cardList  ? cardList.style.display  : '';
+  if(tableWrap) tableWrap.style.display = 'block';
+  if(cardList)  cardList.style.display  = 'none';
+
+  setTimeout(()=>{
+    window.print();
+    // 프린트 후 원래대로
+    setTimeout(()=>{
+      if(tableWrap) tableWrap.style.display = prevTable;
+      if(cardList)  cardList.style.display  = prevCard;
+    }, 500);
+  }, 100);
+};
+
+window.exportExcel = function(){
+  const wb=XLSX.utils.book_new();
+  const rr=[['날짜','장비명','시리얼 번호','서비스 유형','작업 내용','사용 부품','담당자','비고']];
+  serviceRecords.forEach(r=>{const ps=(r.parts||[]).map(p=>`${p.name} ×${p.qty}${p.unit||''}`).join('; ');rr.push([r.date,r.equipmentName,r.serialNumber,r.serviceType,r.description,ps,r.engineer,r.note]);});
+  const ws1=XLSX.utils.aoa_to_sheet(rr);ws1['!cols']=[14,20,18,28,40,30,14,20].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws1,'서비스 기록');
+  const er=[['#','Account Name','Product Family Name','Serial Number','Install Date','마지막 서비스','비고']];
+  equipmentList.forEach((eq,i)=>{const lr=serviceRecords.filter(r=>r.serialNumber===eq.serialNumber).sort((a,b)=>b.date.localeCompare(a.date))[0];er.push([i+1,eq.accountName||'',eq.productName,eq.serialNumber,eq.installDate||'',lr?lr.date:'',eq.note||'']);});
+  const ws2=XLSX.utils.aoa_to_sheet(er);ws2['!cols']=[6,22,24,18,14,14,20].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws2,'장비 목록');
+  const sr=[['장비명','시리얼','점검 항목','예정일','주기(일)','비고']];scheduleList.forEach(s=>sr.push([s.equipmentName,s.serialNumber,s.task,s.date,s.interval,s.note||'']));
+  const ws3=XLSX.utils.aoa_to_sheet(sr);ws3['!cols']=[22,18,28,14,10,24].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws3,'정기점검');
+  XLSX.writeFile(wb,`Vantive_${hospitalId}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('Excel 다운로드 완료','success');
+};
+
+// ── Helpers ──
+function updateBadges(){
+  document.getElementById('badge-records').textContent   = serviceRecords.length;
+  document.getElementById('badge-equipment').textContent = equipmentList.length;
+  document.getElementById('badge-schedule').textContent  = scheduleList.length;
+}
+function setDefaultDate(){
+  const t=new Date().toISOString().split('T')[0];
+  document.getElementById('rec_date').value=t;
+  document.getElementById('sch_date').value=t;
+}
+window.switchTab = function(name){
+  const names=['records','equipment','schedule'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===`panel-${name}`));
+};
+// ── 거래처 설정 함수 ──
+let allAccounts = [];
+
+async function loadAllAccounts(){
+  const set = new Set(equipmentList.map(e=>e.accountName||'').filter(Boolean));
+  if(set.size === 0){
+    try{
+      const snap = await get(ref(db,`equipment/${hospitalId}`));
+      if(snap.exists()) Object.values(snap.val()).forEach(e=>{ if(e.accountName) set.add(e.accountName); });
+    }catch{}
+  }
+  allAccounts = [...set].sort();
+}
+
+function renderPrefAccountList(filter=''){
+  const list = document.getElementById('prefAccountList');
+  const selected = myPref.accounts || [];
+  const filtered = filter
+    ? allAccounts.filter(a=>a.toLowerCase().includes(filter.toLowerCase()))
+    : allAccounts;
+  if(filtered.length === 0){
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">${filter?'검색 결과 없음':'등록된 거래처 없음'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(a=>{
+    const checked = selected.includes(a);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:11px 14px;
+      border-bottom:1px solid var(--border);cursor:pointer;
+      background:${checked?'rgba(114,37,107,0.04)':'var(--white)'};transition:background .1s">
+      <input type="checkbox" class="pref-check" value="${a.replace(/"/g,'&quot;')}" ${checked?'checked':''}
+        onchange="window.updatePrefSelected()"
+        style="width:17px;height:17px;accent-color:var(--purple);cursor:pointer;flex-shrink:0">
+      <span style="font-size:13px;font-weight:${checked?'600':'400'};
+        color:${checked?'var(--purple)':'var(--forest)'}">${a}</span>
+    </label>`;
+  }).join('');
+  window.updatePrefSelected();
+}
+
+window.filterPrefAccounts = function(){
+  const el = document.getElementById('prefSearch');
+  if(el) renderPrefAccountList(el.value.trim());
+};
+
+window.updatePrefSelected = function(){
+  const checked = [...document.querySelectorAll('.pref-check:checked')].map(c=>c.value);
+  const el = document.getElementById('prefSelected');
+  if(!el) return;
+  if(checked.length === 0){
+    el.textContent = '선택 없음 — 전체 데이터 표시';
+    el.style.color = 'var(--text-muted)';
+  } else {
+    el.textContent = `✓ ${checked.length}개 선택: ${checked.join(', ')}`;
+    el.style.color = 'var(--purple)';
+  }
+};
+
+window.clearPrefAccounts = function(){
+  document.querySelectorAll('.pref-check').forEach(c=>c.checked=false);
+  window.updatePrefSelected();
+};
+
+window.savePref = function(){
+  const name     = (document.getElementById('prefName').value||'').trim();
+  const accounts = [...document.querySelectorAll('.pref-check:checked')].map(c=>c.value);
+  myPref = { name, accounts };
+  localStorage.setItem(PREF_KEY, JSON.stringify(myPref));
+  closeModal('prefModal');
+  updateNavUser();
+  showToast(`설정 저장 완료${name?' — '+name:''}`, 'success');
+  // 데이터 재필터링
+  const myAccounts = myPref.accounts || [];
+  const allEq = equipmentList; // 현재 캐시 (전체는 Firebase 리스너가 가지고 있음)
+  // 리스너 데이터 재필터 없이 reload로 적용
+  setTimeout(()=>location.reload(), 600);
+};
+
+window.openModal = function(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='recordModal'||id==='scheduleModal') populateEquipSelects();
+  if(id==='deleteAccountModal') buildAccountDeleteList();
+  if(id==='prefModal'){
+    document.getElementById('prefName').value = myPref.name || '';
+    // 검색창 초기화 및 이벤트 바인딩
+    const searchEl = document.getElementById('prefSearch');
+    searchEl.value = '';
+    // 이벤트 중복 방지: 기존 핸들러 제거 후 재등록
+    const newSearch = searchEl.cloneNode(true);
+    searchEl.parentNode.replaceChild(newSearch, searchEl);
+    newSearch.addEventListener('input', ()=>{
+      renderPrefAccountList(newSearch.value.trim());
+    });
+    loadAllAccounts().then(()=>renderPrefAccountList());
+  }
+};
+window.closeModal = id => document.getElementById(id).classList.remove('open');
+document.querySelectorAll('.modal-overlay').forEach(o=>
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); })
+);
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=(type==='success'?'✓  ':'✕  ')+msg;
+  t.className=`toast show ${type}`;
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+init().then(()=>{
+  // 최초 접속 or 이름 미설정이면 설정 안내
+  if(!myPref.name){
+    setTimeout(()=>openModal('prefModal'), 800);
+  }
+});
+
+// ── 모바일 FAB 표시 ──
+function checkMobile(){
+  const fab = document.getElementById('fabBtn');
+  if(window.innerWidth <= 680){
+    fab.style.display = 'flex';
+  } else {
+    fab.style.display = 'none';
+  }
+}
+checkMobile();
+window.addEventListener('resize', ()=>{
+  checkMobile();
+  renderRecords();
+});
+
+// FAB는 records 탭일 때만 표시
+const origSwitch = window.switchTab;
+window.switchTab = function(name){
+  origSwitch(name);
+  const fab = document.getElementById('fabBtn');
+  if(window.innerWidth <= 680){
+    fab.style.display = name === 'records' ? 'flex' : 'none';
+  }
+};
+</script>
+</body>
+</html>
